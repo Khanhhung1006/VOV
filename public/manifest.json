@@ -1,0 +1,18 @@
+{
+  "name": "FM Radio Việt Nam",
+  "short_name": "FM Radio VN",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07131F",
+  "theme_color": "#07131F",
+  "description": "Âm thanh kết nối mọi hành trình - Ứng dụng nghe FM Online cao cấp",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Logo_VOV1.svg/512px-Logo_VOV1.svg.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

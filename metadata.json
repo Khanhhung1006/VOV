@@ -1,0 +1,6 @@
+{
+  "name": "FM Radio Việt Nam",
+  "description": "Âm thanh kết nối mọi hành trình - Ứng dụng nghe FM Online cao cấp",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
