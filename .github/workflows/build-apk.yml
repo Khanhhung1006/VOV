@@ -32,10 +32,7 @@ jobs:
         run: |
           npm install @capacitor/core@6
           npm install -D @capacitor/cli@6 @capacitor/android@6
-          npx cap init "VOV Radio" "com.vov.radio" --web-dir dist
-          npx cap add android
-
-      - name: Build Web App (Vite)
+                    - name: Build Web App (Vite)
         run: npm run build
 
       - name: Sync Capacitor Android
