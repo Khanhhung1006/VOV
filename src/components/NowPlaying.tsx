@@ -24,6 +24,8 @@ interface NowPlayingProps {
   toggleFavorite?: (id: string) => void;
 }
 
+import { SpectrumVisualizer } from './SpectrumVisualizer';
+
 export const NowPlaying: React.FC<NowPlayingProps> = ({
   currentChannel,
   playerState,
@@ -137,27 +139,18 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
         <div className="w-full flex items-center justify-between mb-6">
           <div className="flex-1 min-w-0 pr-4 flex flex-col items-center text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate w-full">{currentChannel.name}</h2>
-            <p className="text-blue-600 dark:text-blue-400 mt-1 flex items-center justify-center">
-              <RadioReceiver className="w-4 h-4 mr-1.5" />
-              Chương trình trực tiếp
-            </p>
+            <div className="mt-1 flex items-center justify-center text-red-500 dark:text-red-400 font-medium tracking-widest text-xs uppercase">
+              <span className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse" /> 
+              LIVE
+            </div>
           </div>
         </div>
 
-        {/* Live Progress Bar (Dummy for radio) */}
-        <div className="w-full mb-8">
-           <div className="h-1.5 w-full bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-             {isPlaying ? (
-               <div className="h-full bg-blue-500 rounded-full w-full relative">
-                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
-               </div>
-             ) : (
-               <div className="h-full bg-blue-500/30 rounded-full w-full" />
-             )}
-           </div>
-           <div className="flex justify-between text-xs text-gray-500 dark:text-white/50 mt-2 font-medium tracking-wide">
-             <span className="flex items-center text-red-500 dark:text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 mr-1.5 animate-pulse" /> LIVE</span>
-             <span>--:--</span>
+        {/* Live Visualizer Area */}
+        <div className="w-full mb-8 relative h-14">
+           {/* Visualizer extends upwards from bottom. H-14 gives it enough space to reach the channel title bottom */}
+           <div className="absolute bottom-0 left-0 w-full h-14 z-0 opacity-90 mix-blend-screen">
+             <SpectrumVisualizer isActive={isPlaying} />
            </div>
         </div>
 

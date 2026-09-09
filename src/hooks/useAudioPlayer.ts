@@ -43,12 +43,19 @@ export function useAudioPlayer() {
 
     // Auto-play on startup
     const lastChannelId = localStorage.getItem('lastPlayedChannel');
+    let channelToPlay = null;
+    
     if (lastChannelId) {
-      const channel = CHANNELS.find(c => c.id === lastChannelId);
-      if (channel) {
-        setCurrentChannel(channel);
-        audioService.play(channel);
-      }
+      channelToPlay = CHANNELS.find(c => c.id === lastChannelId);
+    }
+    
+    if (!channelToPlay && CHANNELS.length > 0) {
+      channelToPlay = CHANNELS[0];
+    }
+
+    if (channelToPlay) {
+      setCurrentChannel(channelToPlay);
+      audioService.play(channelToPlay);
     }
   }, []);
 
