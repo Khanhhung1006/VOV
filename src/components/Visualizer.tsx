@@ -77,15 +77,23 @@ export const Visualizer: React.FC<VisualizerProps> = ({ isActive, isLandscape = 
 
       // 1. Compute current volume based on real-time low-to-mid audio frequencies
       let targetVolume = 0;
-      if (isActive && audioService.analyser) {
-        getAnalyserData();
-        if (dataArray.length > 0) {
-          let sum = 0;
-          const scanLimit = Math.min(dataArray.length, 36); // Focus on bass & percussion beats
-          for (let i = 0; i < scanLimit; i++) {
-            sum += dataArray[i];
+      if (isActive) {
+        const analyser = audioService.analyser;
+        if (analyser) {
+          getAnalyserData();
+          if (dataArray.length > 0) {
+            let sum = 0;
+            const scanLimit = Math.min(dataArray.length, 36); // Focus on bass & percussion beats
+            for (let i = 0; i < scanLimit; i++) {
+              sum += dataArray[i];
+            }
+            targetVolume = (sum / scanLimit) / 255;
           }
-          targetVolume = (sum / scanLimit) / 255;
+        } else {
+          // Fallback simulation for native platform (ExoPlayer)
+          // Create smooth, organic oscillations that mimic music rhythms
+          const pulse = Math.sin(now * 0.003) * 0.35 + Math.sin(now * 0.007) * 0.2 + Math.sin(now * 0.015) * 0.1;
+          targetVolume = Math.max(0.05, 0.25 + pulse);
         }
       }
 

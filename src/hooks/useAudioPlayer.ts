@@ -49,6 +49,15 @@ export function useAudioPlayer() {
       setPlayerState(state);
     });
 
+    audioService.setOnChannelChange((channel) => {
+      setCurrentChannel(channel);
+      try {
+        localStorage.setItem('lastPlayedChannel', channel.id);
+      } catch (e) {
+        console.warn('localStorage write failed:', e);
+      }
+    });
+
     // Auto-play on startup
     let lastChannelId: string | null = null;
     try {

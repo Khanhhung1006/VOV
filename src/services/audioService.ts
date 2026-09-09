@@ -1,6 +1,32 @@
 import Hls from 'hls.js';
-import { Channel, getStreamUrlFallback } from '../config/channels';
-import { Capacitor } from '@capacitor/core';
+import { Channel, CHANNELS, getStreamUrlFallback } from '../config/channels';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+const RadioPlayback = registerPlugin<any>('RadioPlayback');
+
+function getNativeArtMetadata(id: string) {
+  switch(id) {
+    case 'vov-giaothong-hn': return { title: 'VOV', subtitle: 'GT HÀ NỘI', c1: '#2F8DFF', c2: '#0A2540' };
+    case 'vov-giaothong-hcm': return { title: 'VOV', subtitle: 'GT TP.HCM', c1: '#55D8FF', c2: '#2F8DFF' };
+    case 'vov1': return { title: 'VOV 1', subtitle: 'THỜI SỰ', c1: '#E52D27', c2: '#B31217' };
+    case 'vov2': return { title: 'VOV 2', subtitle: 'VĂN HÓA', c1: '#4776E6', c2: '#8E54E9' };
+    case 'vov3': return { title: 'VOV 3', subtitle: 'ÂM NHẠC', c1: '#7B61FF', c2: '#FF61A6' };
+    case 'vov5': return { title: 'VOV 5', subtitle: 'QUỐC TẾ', c1: '#00c6ff', c2: '#0072ff' };
+    case 'voh-999': return { title: 'VOH', subtitle: 'FM 99.9', c1: '#F12711', c2: '#F5AF19' };
+    case 'xone-fm': return { title: 'XONE', subtitle: 'MUSIC 24/7', c1: '#11998E', c2: '#38EF7D' };
+    case 'joyfm': return { title: 'JOY', subtitle: 'FM 98.9', c1: '#FF4E50', c2: '#F9D423' };
+    case 'vov-fm-suckhoe': return { title: 'VOV', subtitle: 'SỨC KHỎE', c1: '#1D976C', c2: '#93F9B9' };
+    case 'vov-fm-giaoduc': return { title: 'VOV', subtitle: 'GIÁO DỤC', c1: '#3A1C71', c2: '#D76D77' };
+    case 'voh-nhandan': return { title: 'VOH', subtitle: 'NHÂN DÂN', c1: '#0052D4', c2: '#65C7F7' };
+    case 'xone-tophits': return { title: 'XONE', subtitle: 'TOP HITS', c1: '#8A2387', c2: '#E94057' };
+    case 'hanoi-fm': return { title: 'HN', subtitle: 'FM 90', c1: '#1F1C2C', c2: '#928DAB' };
+    case 'radio-vnr': return { title: 'VNR', subtitle: 'RADIO VN', c1: '#2C3E50', c2: '#FD746C' };
+    case 'rfi-tiengviet': return { title: 'RFI', subtitle: 'TIẾNG VIỆT', c1: '#D31027', c2: '#EA00D9' };
+    case 'zing-bolero': return { title: 'ZING', subtitle: 'BOLERO', c1: '#f857a6', c2: '#ff5858' };
+    case 'bbc-world': return { title: 'BBC', subtitle: 'WORLD', c1: '#B21F1F', c2: '#1A2A6C' };
+    default: return { title: 'VOV', subtitle: 'RADIO', c1: '#E52D27', c2: '#B31217' };
+  }
+}
 
 export type PlayerState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
@@ -20,11 +46,13 @@ class AudioService {
 
   private wakeLockAudio: HTMLAudioElement;
   private onStateChangeCallback: ((state: PlayerState) => void) | null = null;
+  private onChannelChangeCallback: ((channel: Channel) => void) | null = null;
   private onNextCallback: (() => void) | null = null;
   private onPrevCallback: (() => void) | null = null;
   private state: PlayerState = 'idle';
   private isIntentionalPause: boolean = true;
   private backgroundMode: any = null;
+  private isNativePlaylistSet = false;
 
   constructor() {
     this.audio = new Audio();
@@ -38,6 +66,32 @@ class AudioService {
     this.setupAudioListeners();
     this.setupVisibilityListener();
     this.initBackgroundMode();
+    
+    if (Capacitor.isNativePlatform()) {
+      this.initNativePlayback();
+    }
+  }
+
+  private async initNativePlayback() {
+    try {
+      RadioPlayback.addListener('onChannelChange', (data: { channelId: string, index: number }) => {
+        console.log('Native onChannelChange:', data);
+        const channel = CHANNELS.find(c => c.id === data.channelId);
+        if (channel) {
+          this.currentChannel = channel;
+          if (this.onChannelChangeCallback) {
+            this.onChannelChangeCallback(channel);
+          }
+        }
+      });
+
+      RadioPlayback.addListener('onStateChange', (data: { state: PlayerState }) => {
+        console.log('Native onStateChange:', data);
+        this.setState(data.state);
+      });
+    } catch (e) {
+      console.warn('Native playback listeners setup failed:', e);
+    }
   }
 
   private async initBackgroundMode() {
@@ -78,6 +132,10 @@ class AudioService {
 
   public setOnStateChange(cb: (state: PlayerState) => void) {
     this.onStateChangeCallback = cb;
+  }
+
+  public setOnChannelChange(cb: (channel: Channel) => void) {
+    this.onChannelChangeCallback = cb;
   }
 
   public setMediaSessionCallbacks(onNext: () => void, onPrev: () => void) {
@@ -204,6 +262,42 @@ class AudioService {
   }
 
   public play(channel: Channel, isRetry = false, useFallback = false) {
+    if (Capacitor.isNativePlatform()) {
+      this.currentChannel = channel;
+      this.isIntentionalPause = false;
+      this.setState('loading');
+      
+      if (!this.isNativePlaylistSet) {
+        const list = CHANNELS.map(c => {
+          const art = getNativeArtMetadata(c.id);
+          return {
+            id: c.id,
+            name: c.name,
+            streamUrl: c.streamUrl,
+            titleText: art.title,
+            subtitleText: art.subtitle,
+            color1: art.c1,
+            color2: art.c2
+          };
+        });
+        RadioPlayback.setChannels({ channels: list, activeId: channel.id, autoPlay: true })
+          .then(() => {
+            this.isNativePlaylistSet = true;
+          })
+          .catch((err: any) => {
+            console.error('Failed to set native channels:', err);
+            this.setState('error');
+          });
+      } else {
+        RadioPlayback.selectIndex({ id: channel.id, autoPlay: true })
+          .catch((err: any) => {
+            console.error('Failed to select native index:', err);
+            this.setState('error');
+          });
+      }
+      return;
+    }
+
     this.initWebAudio();
     if (this.audioContext?.state === 'suspended') {
       this.audioContext.resume();
@@ -291,12 +385,27 @@ class AudioService {
 
   public pause() {
     this.isIntentionalPause = true;
+    if (Capacitor.isNativePlatform()) {
+      RadioPlayback.pause().catch((e: any) => console.warn(e));
+      this.setState('paused');
+      return;
+    }
     this.audio.pause();
     this.wakeLockAudio.pause();
     this.setState('paused');
   }
 
   public togglePlay() {
+    if (Capacitor.isNativePlatform()) {
+      if (this.state === 'playing') {
+        this.pause();
+      } else {
+        this.isIntentionalPause = false;
+        RadioPlayback.play().catch((e: any) => console.warn(e));
+      }
+      return;
+    }
+
     this.initWebAudio();
     if (this.audioContext?.state === 'suspended') {
       this.audioContext.resume();
@@ -316,6 +425,9 @@ class AudioService {
 
   public setVolume(val: number) {
     this.audio.volume = val;
+    if (Capacitor.isNativePlatform()) {
+      RadioPlayback.setVolume({ volume: val }).catch((e: any) => console.warn(e));
+    }
   }
 
   private convertSvgToPng(svgDataUrl: string): Promise<string> {
