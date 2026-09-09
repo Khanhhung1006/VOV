@@ -17,15 +17,21 @@ class AudioService {
   private retryDelays = [2000, 5000, 10000];
   private retryTimeout: any = null;
 
+  private wakeLockAudio: HTMLAudioElement;
   private onStateChangeCallback: ((state: PlayerState) => void) | null = null;
+  private onNextCallback: (() => void) | null = null;
+  private onPrevCallback: (() => void) | null = null;
   private state: PlayerState = 'idle';
-  private isIntentionalPause: boolean = true; // Default to true so it doesn't auto-resume without playing once
+  private isIntentionalPause: boolean = true;
 
   constructor() {
     this.audio = new Audio();
     this.audio.crossOrigin = 'anonymous';
-    // Increase preload buffer if possible
     this.audio.preload = 'auto';
+    
+    // Background execution wakelock hack for Web Audio API
+    this.wakeLockAudio = new Audio('/silence.wav');
+    this.wakeLockAudio.loop = true;
 
     this.setupAudioListeners();
     this.setupVisibilityListener();
@@ -36,7 +42,9 @@ class AudioService {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && !this.isIntentionalPause && this.currentChannel) {
           // Attempt to resume playback if the user returns to the app and didn't intentionally pause it
-          this.audio.play().catch(e => console.warn('Auto-resume failed:', e));
+          this.audio.play().then(() => {
+            this.wakeLockAudio.play().catch(e => console.warn(e));
+          }).catch(e => console.warn('Auto-resume failed:', e));
         }
       });
     }
@@ -44,6 +52,19 @@ class AudioService {
 
   public setOnStateChange(cb: (state: PlayerState) => void) {
     this.onStateChangeCallback = cb;
+  }
+
+  public setMediaSessionCallbacks(onNext: () => void, onPrev: () => void) {
+    this.onNextCallback = onNext;
+    this.onPrevCallback = onPrev;
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.setActionHandler('nexttrack', this.onNextCallback);
+        navigator.mediaSession.setActionHandler('previoustrack', this.onPrevCallback);
+      } catch (e) {
+        console.warn('MediaSession API next/prev not supported', e);
+      }
+    }
   }
 
   public setAudioBoost(level: number) {
@@ -110,14 +131,14 @@ class AudioService {
         // Bass Enhancement (LowShelf)
         const bassFilter = this.audioContext.createBiquadFilter();
         bassFilter.type = 'lowshelf';
-        bassFilter.frequency.value = 100;
-        bassFilter.gain.value = 3; // +3dB
+        bassFilter.frequency.value = 120;
+        bassFilter.gain.value = 8; // +8dB for deep punchy bass
 
         // Treble Enhancement (HighShelf)
         const trebleFilter = this.audioContext.createBiquadFilter();
         trebleFilter.type = 'highshelf';
-        trebleFilter.frequency.value = 8000;
-        trebleFilter.gain.value = 2; // +2dB
+        trebleFilter.frequency.value = 6000;
+        trebleFilter.gain.value = 3; // +3dB for clarity
 
         // Connect chain: Source -> EQ -> Boost -> Compressor -> Analyser -> Destination
         this.sourceNode
@@ -193,7 +214,9 @@ class AudioService {
       this.hls.loadSource(url);
       this.hls.attachMedia(this.audio);
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        this.audio.play().catch(e => {
+        this.audio.play().then(() => {
+          this.wakeLockAudio.play().catch(e => console.warn('Wakelock audio failed', e));
+        }).catch(e => {
           this.isIntentionalPause = true;
           console.warn('Autoplay prevented', e);
         });
@@ -219,7 +242,9 @@ class AudioService {
       // Native support (Safari, mobile iOS/Android) or MP3 stream
       this.audio.src = url;
       this.audio.load();
-      this.audio.play().catch(e => {
+      this.audio.play().then(() => {
+        this.wakeLockAudio.play().catch(e => console.warn('Wakelock audio failed', e));
+      }).catch(e => {
         this.isIntentionalPause = true;
         console.warn('Autoplay prevented', e);
         this.setState('paused');
@@ -230,6 +255,7 @@ class AudioService {
   public pause() {
     this.isIntentionalPause = true;
     this.audio.pause();
+    this.wakeLockAudio.pause();
     this.setState('paused');
   }
 
@@ -240,7 +266,9 @@ class AudioService {
       this.isIntentionalPause = false;
       // If we are suspended due to interruption, we should resume. 
       // Re-triggering play helps with background execution
-      this.audio.play().catch(e => {
+      this.audio.play().then(() => {
+        this.wakeLockAudio.play().catch(e => console.warn('Wakelock audio failed', e));
+      }).catch(e => {
         this.isIntentionalPause = true;
         console.warn(e);
       });
@@ -267,15 +295,24 @@ class AudioService {
       });
 
       navigator.mediaSession.setActionHandler('play', () => {
-        this.audio.play();
+        this.audio.play().then(() => {
+          this.wakeLockAudio.play().catch(e => console.warn(e));
+        });
         this.setState('playing');
       });
       navigator.mediaSession.setActionHandler('pause', () => {
         this.isIntentionalPause = true;
         this.audio.pause();
+        this.wakeLockAudio.pause();
         this.setState('paused');
       });
-      // We can also add nexttrack/previoustrack if we have a playlist managed in state
+      
+      if (this.onNextCallback) {
+        navigator.mediaSession.setActionHandler('nexttrack', this.onNextCallback);
+      }
+      if (this.onPrevCallback) {
+        navigator.mediaSession.setActionHandler('previoustrack', this.onPrevCallback);
+      }
     }
   }
 

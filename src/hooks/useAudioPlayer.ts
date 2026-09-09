@@ -52,6 +52,11 @@ export function useAudioPlayer() {
     }
   }, []);
 
+  // Update media session callbacks whenever dependencies change
+  useEffect(() => {
+    audioService.setMediaSessionCallbacks(playNextChannel, playPrevChannel);
+  }, [currentChannel, hiddenChannels]);
+
   const setAudioBoost = (level: number) => {
     setAudioBoostState(level);
     localStorage.setItem('audioBoost', level.toString());

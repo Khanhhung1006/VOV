@@ -100,7 +100,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {[
                 { label: 'Mặc định', value: 1 },
                 { label: '150%', value: 1.5 },
-                { label: '200%', value: 2 }
+                { label: '200%', value: 2 },
+                { label: '300%', value: 3 }
               ].map(option => (
                 <button 
                   key={option.value}

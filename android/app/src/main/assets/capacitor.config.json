@@ -1,0 +1,11 @@
+{
+	"appId": "com.vov.radio",
+	"appName": "VOV Radio",
+	"webDir": "dist",
+	"plugins": {
+		"StatusBar": {
+			"overlaysWebView": true,
+			"style": "DARK"
+		}
+	}
+}
