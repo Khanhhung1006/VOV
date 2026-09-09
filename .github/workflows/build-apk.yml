@@ -28,11 +28,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Setup Capacitor
-        run: |
-          npm install @capacitor/core@6
-          npm install -D @capacitor/cli@6 @capacitor/android@6
-                    - name: Build Web App (Vite)
+      - name: Build Web App (Vite)
         run: npm run build
 
       - name: Sync Capacitor Android
