@@ -128,24 +128,9 @@ class AudioService {
         compressor.attack.value = 0.005;
         compressor.release.value = 0.050;
 
-        // Bass Enhancement (LowShelf)
-        const bassFilter = this.audioContext.createBiquadFilter();
-        bassFilter.type = 'lowshelf';
-        bassFilter.frequency.value = 120;
-        bassFilter.gain.value = 8; // +8dB for deep punchy bass
-
-        // Treble Enhancement (HighShelf)
-        const trebleFilter = this.audioContext.createBiquadFilter();
-        trebleFilter.type = 'highshelf';
-        trebleFilter.frequency.value = 6000;
-        trebleFilter.gain.value = 3; // +3dB for clarity
-
-        // Connect chain: Source -> EQ -> Boost -> Compressor -> Analyser -> Destination
+        // Connect chain: Source -> Boost -> Analyser -> Destination
         this.sourceNode
-          .connect(bassFilter)
-          .connect(trebleFilter)
           .connect(this.boostNode)
-          .connect(compressor)
           .connect(this.analyser)
           .connect(this.audioContext.destination);
 
