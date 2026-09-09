@@ -34,7 +34,7 @@ public class RadioPlaybackPlugin extends Plugin {
     private void initMediaController() {
         Context context = getContext();
         SessionToken sessionToken = new SessionToken(context, new ComponentName(context, RadioPlaybackService.class));
-        controllerFuture = new MediaController.Builder(context, sessionToken).build();
+        controllerFuture = new MediaController.Builder(context, sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
             try {
                 mediaController = controllerFuture.get();
