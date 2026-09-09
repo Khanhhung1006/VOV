@@ -3,10 +3,10 @@ import { audioService } from '../services/audioService';
 
 interface VisualizerProps {
   isActive: boolean;
-  isLandscape?: boolean;
+  isDesktop?: boolean;
 }
 
-export const Visualizer: React.FC<VisualizerProps> = ({ isActive, isLandscape = false }) => {
+export const Visualizer: React.FC<VisualizerProps> = ({ isActive, isDesktop = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | undefined>(undefined);
 
@@ -94,7 +94,7 @@ export const Visualizer: React.FC<VisualizerProps> = ({ isActive, isLandscape = 
       window.removeEventListener('resize', updateCanvasSize);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [isActive, isLandscape]);
+  }, [isActive, isDesktop]);
 
   return (
     <div className="w-full h-full min-h-[100px] flex items-center justify-center relative">

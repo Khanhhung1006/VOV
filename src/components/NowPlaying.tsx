@@ -14,7 +14,7 @@ interface NowPlayingProps {
   onChangeVolume: (v: number) => void;
   isExpanded: boolean;
   onClose: () => void;
-  isLandscape?: boolean;
+  isDesktop?: boolean;
   sleepTimerTimeLeft?: number | null;
   setSleepTimer?: (minutes: number) => void;
   clearSleepTimer?: () => void;
@@ -34,7 +34,7 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
   onChangeVolume,
   isExpanded,
   onClose,
-  isLandscape = false,
+  isDesktop = false,
   sleepTimerTimeLeft = null,
   setSleepTimer,
   clearSleepTimer,
@@ -69,24 +69,24 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
   };
 
   // If we're not landscape and not expanded, we don't render (handled by parent or CSS)
-  if (!isLandscape && !isExpanded) return null;
+  if (!isDesktop && !isExpanded) return null;
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-between h-full bg-gray-50 dark:bg-gradient-to-b dark:from-[#0F2238] dark:to-[#07131F] transition-colors duration-300",
-      isLandscape ? "px-8 py-6 w-full !bg-transparent" : "fixed inset-0 z-50 px-6 pb-8 pt-safe"
+      "flex items-center justify-between h-full bg-gray-50 dark:bg-gradient-to-b dark:from-[#0F2238] dark:to-[#07131F] transition-colors duration-300",
+      isDesktop ? "flex-col px-8 py-6 w-full !bg-transparent" : "fixed inset-0 z-50 px-6 pb-8 pt-safe flex-col landscape:flex-row landscape:justify-evenly landscape:gap-8 overflow-y-auto"
     )}>
       {/* Top Header - Only in Portrait */}
-      {!isLandscape && (
-        <div className="w-full flex items-center justify-between">
+      {!isDesktop && (
+        <div className="w-full flex items-center justify-between shrink-0 landscape:absolute landscape:top-6 landscape:left-6 landscape:w-auto landscape:z-50">
           <button onClick={onClose} className="p-2 text-gray-500 hover:text-gray-900 dark:text-white/70 dark:hover:text-white transition-colors">
             <ChevronDown className="w-8 h-8" />
           </button>
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center landscape:hidden">
             <span className="text-xs font-semibold text-gray-400 dark:text-white/50 tracking-widest uppercase">Đang phát từ</span>
             <span className="text-sm font-medium text-gray-900 dark:text-white/90">{currentChannel.category}</span>
           </div>
-          <button className="p-2 text-gray-500 hover:text-gray-900 dark:text-white/70 dark:hover:text-white transition-colors">
+          <button className="p-2 text-gray-500 hover:text-gray-900 dark:text-white/70 dark:hover:text-white transition-colors landscape:hidden">
             <MoreVertical className="w-6 h-6" />
           </button>
         </div>
@@ -95,11 +95,11 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
       {/* Center Art & Visualizer */}
       <div className={cn(
         "relative flex flex-col items-center justify-center w-full flex-1",
-        isLandscape ? "my-0" : "my-8"
+        isDesktop ? "my-0" : "my-8 landscape:my-0 landscape:flex-1 landscape:max-w-[50vw]"
       )}>
         {/* Visualizer Background Container */}
         <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
-           <Visualizer isActive={isPlaying} isLandscape={isLandscape} />
+           <Visualizer isActive={isPlaying} isDesktop={isDesktop} />
         </div>
 
         {/* Artwork Ring */}
@@ -114,7 +114,7 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
             )}>
               <div className={cn(
                 "rounded-full overflow-hidden bg-white dark:bg-[#07131F] relative shadow-2xl transition-all duration-700 border border-gray-100 dark:border-none",
-                isLandscape ? "w-56 h-56 lg:w-64 lg:h-64" : "w-64 h-64 md:w-80 md:h-80"
+                isDesktop ? "w-56 h-56 lg:w-64 lg:h-64" : "w-64 h-64 md:w-80 md:h-80 landscape:w-56 landscape:h-56 landscape:md:w-64 landscape:md:h-64"
               )}>
                 <img 
                   src={currentChannel.logo} 
@@ -133,7 +133,10 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
       </div>
 
       {/* Info & Controls */}
-      <div className="w-full z-10 flex flex-col items-center max-w-md mx-auto">
+      <div className={cn(
+        "w-full z-10 flex flex-col items-center max-w-md mx-auto",
+        !isDesktop && "landscape:max-w-none landscape:flex-1 landscape:pt-6"
+      )}>
         
         {/* Title */}
         <div className="w-full flex items-center justify-between mb-6">

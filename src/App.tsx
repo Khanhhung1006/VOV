@@ -35,7 +35,7 @@ export default function App() {
     audioBoost,
     setAudioBoost
   } = useAudioPlayer();
-  const isLandscape = useMediaQuery('(min-width: 768px) and (orientation: landscape), (min-width: 1024px)');
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -46,7 +46,7 @@ export default function App() {
       {/* Left / Main Content Area */}
       <div className={cn(
         "flex flex-col h-full transition-colors duration-300",
-        isLandscape ? "w-2/5 max-w-sm shrink-0 bg-white dark:bg-[#0A1828] border-r border-gray-200 dark:border-transparent" : "w-full"
+        isDesktop ? "w-2/5 max-w-sm shrink-0 bg-white dark:bg-[#0A1828] border-r border-gray-200 dark:border-transparent" : "w-full"
       )}>
         
         {/* Header */}
@@ -80,7 +80,7 @@ export default function App() {
              currentChannel={currentChannel} 
              playerState={playerState} 
              onPlayChannel={playChannel} 
-             isLandscape={isLandscape}
+             isDesktop={isDesktop}
              favorites={favorites}
              toggleFavorite={toggleFavorite}
              hiddenChannels={hiddenChannels}
@@ -90,7 +90,7 @@ export default function App() {
       </div>
 
       {/* Right Content Area (Landscape Only) */}
-      {isLandscape && (
+      {isDesktop && (
          <div className="flex-1 h-full bg-gray-100 dark:bg-gradient-to-br dark:from-[#0F2238] dark:to-[#07131F] flex items-center justify-center relative overflow-hidden shadow-[-10px_0_30px_rgba(0,0,0,0.05)] dark:shadow-[-10px_0_30px_rgba(0,0,0,0.3)] z-10 transition-colors duration-300">
             {currentChannel ? (
                <NowPlaying 
@@ -101,7 +101,7 @@ export default function App() {
                  onChangeVolume={changeVolume}
                  isExpanded={true}
                  onClose={() => {}}
-                 isLandscape={true}
+                 isDesktop={true}
                  sleepTimerTimeLeft={sleepTimerTimeLeft}
                  setSleepTimer={setSleepTimer}
                  clearSleepTimer={clearSleepTimer}
@@ -122,7 +122,7 @@ export default function App() {
       )}
 
       {/* Portrait Floating UI */}
-      {!isLandscape && currentChannel && (
+      {!isDesktop && currentChannel && (
         <>
           {/* Mini Player */}
           <div className={cn(
@@ -150,7 +150,7 @@ export default function App() {
                  onChangeVolume={changeVolume}
                  isExpanded={isPlayerExpanded}
                  onClose={() => setIsPlayerExpanded(false)}
-                 isLandscape={false}
+                 isDesktop={false}
                  sleepTimerTimeLeft={sleepTimerTimeLeft}
                  setSleepTimer={setSleepTimer}
                  clearSleepTimer={clearSleepTimer}
