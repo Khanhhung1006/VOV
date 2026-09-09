@@ -24,18 +24,24 @@ export const Visualizer: React.FC<VisualizerProps> = ({ isActive, isLandscape = 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Handles Retina/High-DPI display scaling for perfectly crisp lines
-    const updateCanvasSize = () => {
-      const parent = canvas.parentElement;
-      if (parent) {
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    // Use ResizeObserver for ultra-precise high-DPI scaling on all screen rotations/resizes
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // Get precise content bounding box
+        const width = entry.contentRect.width || parent.clientWidth;
+        const height = entry.contentRect.height || parent.clientHeight;
         const dpr = window.devicePixelRatio || 1;
-        canvas.width = parent.clientWidth * dpr;
-        canvas.height = parent.clientHeight * dpr;
+        
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
         ctx.scale(dpr, dpr);
       }
-    };
-    updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
+    });
+
+    resizeObserver.observe(parent);
 
     // Initial frequency array sizing
     let dataArray = new Uint8Array(0);
@@ -174,7 +180,7 @@ export const Visualizer: React.FC<VisualizerProps> = ({ isActive, isLandscape = 
     requestRef.current = requestAnimationFrame(draw);
 
     return () => {
-      window.removeEventListener('resize', updateCanvasSize);
+      resizeObserver.disconnect();
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   }, [isActive, isLandscape]);

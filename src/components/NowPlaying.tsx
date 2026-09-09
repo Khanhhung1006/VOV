@@ -154,7 +154,7 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
       <div className={cn(
         "w-full z-10 flex flex-col items-center max-w-md mx-auto",
         isLandscape 
-          ? (isShort ? "flex-1 min-w-0 max-w-sm py-1" : "") 
+          ? (isShort ? "flex-1 min-w-0 max-w-sm py-1 justify-center" : "justify-center") 
           : "landscape:max-w-none landscape:flex-1 landscape:pt-6"
       )}>
         
@@ -169,13 +169,15 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
           </div>
         </div>
 
-        {/* Live Visualizer Area */}
-        <div className={cn("w-full relative", isShort ? "mb-3 h-10" : "mb-8 h-14")}>
-           {/* Visualizer extends upwards from bottom. H-14 gives it enough space to reach the channel title bottom */}
-           <div className={cn("absolute bottom-0 left-0 w-full z-0 opacity-90 mix-blend-screen", isShort ? "h-10" : "h-14")}>
-             <SpectrumVisualizer isActive={isPlaying} />
-           </div>
-        </div>
+        {/* Live Visualizer Area - Only in Portrait */}
+        {!isLandscape && (
+          <div className={cn("w-full relative", isShort ? "mb-3 h-10" : "mb-8 h-14")}>
+             {/* Visualizer extends upwards from bottom. H-14 gives it enough space to reach the channel title bottom */}
+             <div className={cn("absolute bottom-0 left-0 w-full z-0 opacity-90 mix-blend-screen", isShort ? "h-10" : "h-14")}>
+               <SpectrumVisualizer isActive={isPlaying} />
+             </div>
+          </div>
+        )}
 
         {/* Primary Controls */}
         <div className={cn("w-full flex items-center justify-between px-4", isShort ? "mb-4" : "mb-8")}>
@@ -224,24 +226,26 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
           </button>
         </div>
 
-        {/* Volume & Bottom Actions */}
-        <div className="w-full flex items-center space-x-3 px-2">
-           <button onClick={handleVolumeToggle} className="text-gray-500 hover:text-gray-900 dark:text-white/60 dark:hover:text-white">
-             {volume === 0 || isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-           </button>
-           <input 
-             type="range" 
-             min="0" 
-             max="1" 
-             step="0.01" 
-             value={isMuted ? 0 : volume}
-             onChange={(e) => {
-               onChangeVolume(parseFloat(e.target.value));
-               if (isMuted) setIsMuted(false);
-             }}
-             className="flex-1 h-1 bg-gray-300 dark:bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-gray-600 dark:[&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
-           />
-        </div>
+        {/* Volume & Bottom Actions - Only in Portrait */}
+        {!isLandscape && (
+          <div className="w-full flex items-center space-x-3 px-2">
+             <button onClick={handleVolumeToggle} className="text-gray-500 hover:text-gray-900 dark:text-white/60 dark:hover:text-white">
+               {volume === 0 || isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+             </button>
+             <input 
+               type="range" 
+               min="0" 
+               max="1" 
+               step="0.01" 
+               value={isMuted ? 0 : volume}
+               onChange={(e) => {
+                 onChangeVolume(parseFloat(e.target.value));
+                 if (isMuted) setIsMuted(false);
+               }}
+               className="flex-1 h-1 bg-gray-300 dark:bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-gray-600 dark:[&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
+             />
+          </div>
+        )}
 
       </div>
 

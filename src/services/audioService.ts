@@ -82,8 +82,12 @@ class AudioService {
     this.onPrevCallback = onPrev;
     if ('mediaSession' in navigator) {
       try {
-        navigator.mediaSession.setActionHandler('nexttrack', this.onNextCallback);
-        navigator.mediaSession.setActionHandler('previoustrack', this.onPrevCallback);
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          if (this.onNextCallback) this.onNextCallback();
+        });
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+          if (this.onPrevCallback) this.onPrevCallback();
+        });
       } catch (e) {
         console.warn('MediaSession API next/prev not supported', e);
       }
@@ -99,7 +103,7 @@ class AudioService {
   private setState(newState: PlayerState) {
     this.state = newState;
     if ('mediaSession' in navigator) {
-      if (newState === 'playing') {
+      if (newState === 'playing' || newState === 'loading') {
         navigator.mediaSession.playbackState = 'playing';
       } else if (newState === 'paused' || newState === 'idle' || newState === 'error') {
         navigator.mediaSession.playbackState = 'paused';
@@ -377,12 +381,16 @@ class AudioService {
         this.pause();
       });
       
-      if (this.onNextCallback) {
-        navigator.mediaSession.setActionHandler('nexttrack', this.onNextCallback);
-      }
-      if (this.onPrevCallback) {
-        navigator.mediaSession.setActionHandler('previoustrack', this.onPrevCallback);
-      }
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        if (this.onNextCallback) {
+          this.onNextCallback();
+        }
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (this.onPrevCallback) {
+          this.onPrevCallback();
+        }
+      });
     }
   }
 
