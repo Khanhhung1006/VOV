@@ -1,6 +1,5 @@
 import Hls from 'hls.js';
 import { Channel, getStreamUrlFallback } from '../config/channels';
-import { BackgroundMode } from '@anuradev/capacitor-background-mode';
 import { Capacitor } from '@capacitor/core';
 
 export type PlayerState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
@@ -25,6 +24,7 @@ class AudioService {
   private onPrevCallback: (() => void) | null = null;
   private state: PlayerState = 'idle';
   private isIntentionalPause: boolean = true;
+  private backgroundMode: any = null;
 
   constructor() {
     this.audio = new Audio();
@@ -43,17 +43,20 @@ class AudioService {
   private async initBackgroundMode() {
     if (Capacitor.isNativePlatform()) {
       try {
-        await BackgroundMode.enable();
-        await BackgroundMode.setSettings({
+        const { BackgroundMode } = await import('@anuradev/capacitor-background-mode');
+        this.backgroundMode = BackgroundMode;
+        await this.backgroundMode.enable();
+        await this.backgroundMode.setSettings({
           title: 'FM Radio Việt Nam',
           text: 'Đang chạy ngầm',
           subText: 'Chạm để mở lại',
+          silent: true,
           resume: true,
           hidden: false,
           disableWebViewOptimization: true,
           allowClose: false
         });
-        await BackgroundMode.disableWebViewOptimizations();
+        await this.backgroundMode.disableWebViewOptimizations();
       } catch (e) {
         console.warn('Failed to initialize background mode:', e);
       }
@@ -109,7 +112,7 @@ class AudioService {
         navigator.mediaSession.playbackState = 'paused';
       }
     }
-    if (Capacitor.isNativePlatform()) {
+    if (this.backgroundMode) {
       let text = 'Đang chạy ngầm';
       if (newState === 'playing' && this.currentChannel) {
         text = `Đang phát: ${this.currentChannel.name}`;
@@ -120,7 +123,7 @@ class AudioService {
       } else if (newState === 'error') {
         text = 'Lỗi kết nối';
       }
-      BackgroundMode.setSettings({ text }).catch(() => {});
+      this.backgroundMode.setSettings({ text }).catch(() => {});
     }
     if (this.onStateChangeCallback) {
       this.onStateChangeCallback(this.state);
