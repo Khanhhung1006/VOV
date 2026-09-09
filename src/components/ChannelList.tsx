@@ -8,7 +8,7 @@ interface ChannelListProps {
   currentChannel: Channel | null;
   playerState: PlayerState;
   onPlayChannel: (channel: Channel) => void;
-  isDesktop?: boolean;
+  isLandscape?: boolean;
   favorites?: string[];
   toggleFavorite?: (id: string) => void;
   hiddenChannels?: string[];
@@ -18,7 +18,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   currentChannel,
   playerState,
   onPlayChannel,
-  isDesktop = false,
+  isLandscape = false,
   favorites = [],
   toggleFavorite,
   hiddenChannels = []
@@ -40,7 +40,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   };
 
   return (
-    <div className={cn("flex flex-col h-full", isDesktop ? "pr-4 border-r border-gray-200 dark:border-white/10" : "")}>
+    <div className={cn("flex flex-col h-full", isLandscape ? "pr-4 border-r border-gray-200 dark:border-white/10" : "")}>
       {/* Categories */}
       <div className="flex space-x-3 overflow-x-auto pb-4 pt-2 hide-scrollbar px-4 md:px-0">
         {CATEGORIES.map(cat => (

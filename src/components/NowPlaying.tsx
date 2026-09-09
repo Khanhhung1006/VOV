@@ -5,6 +5,7 @@ import { Visualizer } from './Visualizer';
 import { SleepTimerModal } from './SleepTimerModal';
 import { Play, Pause, Volume2, VolumeX, Heart, RadioReceiver, ChevronDown, Clock, MoreVertical, SkipBack, SkipForward } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface NowPlayingProps {
   currentChannel: Channel | null;
@@ -14,7 +15,7 @@ interface NowPlayingProps {
   onChangeVolume: (v: number) => void;
   isExpanded: boolean;
   onClose: () => void;
-  isDesktop?: boolean;
+  isLandscape?: boolean;
   sleepTimerTimeLeft?: number | null;
   setSleepTimer?: (minutes: number) => void;
   clearSleepTimer?: () => void;
@@ -34,7 +35,7 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
   onChangeVolume,
   isExpanded,
   onClose,
-  isDesktop = false,
+  isLandscape = false,
   sleepTimerTimeLeft = null,
   setSleepTimer,
   clearSleepTimer,
@@ -45,6 +46,7 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false);
+  const isShort = useMediaQuery('(max-height: 550px)');
 
   if (!currentChannel) return null;
 
@@ -69,15 +71,17 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
   };
 
   // If we're not landscape and not expanded, we don't render (handled by parent or CSS)
-  if (!isDesktop && !isExpanded) return null;
+  if (!isLandscape && !isExpanded) return null;
 
   return (
     <div className={cn(
       "flex items-center justify-between h-full bg-gray-50 dark:bg-gradient-to-b dark:from-[#0F2238] dark:to-[#07131F] transition-colors duration-300",
-      isDesktop ? "flex-col px-8 py-6 w-full !bg-transparent" : "fixed inset-0 z-50 px-6 pb-8 pt-safe flex-col landscape:flex-row landscape:justify-evenly landscape:gap-8 overflow-y-auto"
+      isLandscape 
+        ? (isShort ? "flex-row px-6 py-3 w-full gap-6 justify-evenly !bg-transparent overflow-hidden" : "flex-col px-8 py-6 w-full !bg-transparent")
+        : "fixed inset-0 z-50 px-6 pb-8 pt-safe flex-col landscape:flex-row landscape:justify-evenly landscape:gap-8 overflow-y-auto"
     )}>
       {/* Top Header - Only in Portrait */}
-      {!isDesktop && (
+      {!isLandscape && (
         <div className="w-full flex items-center justify-between shrink-0 landscape:absolute landscape:top-6 landscape:left-6 landscape:w-auto landscape:z-50">
           <button onClick={onClose} className="p-2 text-gray-500 hover:text-gray-900 dark:text-white/70 dark:hover:text-white transition-colors">
             <ChevronDown className="w-8 h-8" />
@@ -95,37 +99,51 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
       {/* Center Art & Visualizer */}
       <div className={cn(
         "relative flex flex-col items-center justify-center w-full flex-1",
-        isDesktop ? "my-0" : "my-8 landscape:my-0 landscape:flex-1 landscape:max-w-[50vw]"
+        isLandscape 
+          ? (isShort ? "my-0 max-w-[45%] shrink-0" : "my-0") 
+          : "my-8 landscape:my-0 landscape:flex-1 landscape:max-w-[50vw]"
       )}>
         {/* Visualizer Background Container */}
-        <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
-           <Visualizer isActive={isPlaying} isDesktop={isDesktop} />
+        <div className="absolute inset-0 z-0 pointer-events-none">
+           <Visualizer isActive={isPlaying} isLandscape={isLandscape} />
         </div>
 
-        {/* Artwork Ring */}
-        <div className="relative z-10">
+        {/* Artwork Ring with slow floating animation */}
+        <div className="relative z-10 animate-float">
           <div className={cn(
-            "rounded-full p-2 transition-all duration-700",
-            isPlaying ? "bg-blue-100 dark:bg-blue-500/20 animate-pulse shadow-[0_0_50px_rgba(47,141,255,0.4)]" : "bg-gray-200/50 dark:bg-white/5"
+            "rounded-full p-2.5 transition-all duration-700 backdrop-blur-md border border-white/10 shadow-2xl",
+            isPlaying 
+              ? "bg-violet-500/10 dark:bg-violet-500/15 shadow-[0_0_60px_rgba(139,92,246,0.25)]" 
+              : "bg-gray-200/40 dark:bg-white/5"
           )}>
             <div className={cn(
-              "rounded-full p-1 border border-gray-100 dark:border-white/10 transition-all duration-700",
-              isPlaying ? "bg-white dark:bg-[#1A365D]" : "bg-transparent"
+              "rounded-full p-1.5 border border-gray-100 dark:border-white/10 transition-all duration-700",
+              isPlaying ? "bg-white/90 dark:bg-slate-900/90" : "bg-transparent"
             )}>
               <div className={cn(
                 "rounded-full overflow-hidden bg-white dark:bg-[#07131F] relative shadow-2xl transition-all duration-700 border border-gray-100 dark:border-none",
-                isDesktop ? "w-56 h-56 lg:w-64 lg:h-64" : "w-64 h-64 md:w-80 md:h-80 landscape:w-56 landscape:h-56 landscape:md:w-64 landscape:md:h-64"
+                isLandscape 
+                  ? (isShort ? "w-36 h-36 md:w-40 md:h-40" : "w-56 h-56 lg:w-64 lg:h-64") 
+                  : "w-64 h-64 md:w-80 md:h-80 landscape:w-56 landscape:h-56 landscape:md:w-64 landscape:md:h-64"
               )}>
-                <img 
-                  src={currentChannel.logo} 
-                  alt={currentChannel.name} 
-                  className={cn(
-                    "w-full h-full object-cover transition-transform duration-[20s] ease-linear",
-                    isPlaying ? "scale-110" : "scale-100"
-                  )} 
-                />
-                {/* Glossy overlay */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/10" />
+                {/* Slow linear rotation wrapper */}
+                <div 
+                  className="w-full h-full animate-spin-slow"
+                  style={{
+                    animationPlayState: isPlaying ? 'running' : 'paused'
+                  }}
+                >
+                  <img 
+                    src={currentChannel.logo} 
+                    alt={currentChannel.name} 
+                    className={cn(
+                      "w-full h-full object-cover transition-transform duration-[2s] ease-out",
+                      isPlaying ? "scale-110" : "scale-100"
+                    )} 
+                  />
+                </div>
+                {/* Glossy glass reflection overlay */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/15 pointer-events-none" />
               </div>
             </div>
           </div>
@@ -135,11 +153,13 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
       {/* Info & Controls */}
       <div className={cn(
         "w-full z-10 flex flex-col items-center max-w-md mx-auto",
-        !isDesktop && "landscape:max-w-none landscape:flex-1 landscape:pt-6"
+        isLandscape 
+          ? (isShort ? "flex-1 min-w-0 max-w-sm py-1" : "") 
+          : "landscape:max-w-none landscape:flex-1 landscape:pt-6"
       )}>
         
         {/* Title */}
-        <div className="w-full flex items-center justify-between mb-6">
+        <div className={cn("w-full flex items-center justify-between", isShort ? "mb-2" : "mb-6")}>
           <div className="flex-1 min-w-0 pr-4 flex flex-col items-center text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate w-full">{currentChannel.name}</h2>
             <div className="mt-1 flex items-center justify-center text-red-500 dark:text-red-400 font-medium tracking-widest text-xs uppercase">
@@ -150,15 +170,15 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
         </div>
 
         {/* Live Visualizer Area */}
-        <div className="w-full mb-8 relative h-14">
+        <div className={cn("w-full relative", isShort ? "mb-3 h-10" : "mb-8 h-14")}>
            {/* Visualizer extends upwards from bottom. H-14 gives it enough space to reach the channel title bottom */}
-           <div className="absolute bottom-0 left-0 w-full h-14 z-0 opacity-90 mix-blend-screen">
+           <div className={cn("absolute bottom-0 left-0 w-full z-0 opacity-90 mix-blend-screen", isShort ? "h-10" : "h-14")}>
              <SpectrumVisualizer isActive={isPlaying} />
            </div>
         </div>
 
         {/* Primary Controls */}
-        <div className="w-full flex items-center justify-between mb-8 px-4">
+        <div className={cn("w-full flex items-center justify-between px-4", isShort ? "mb-4" : "mb-8")}>
           <button className="text-gray-400 hover:text-gray-900 dark:text-white/50 dark:hover:text-white transition-colors" onClick={handleToggleFavorite}>
             <Heart className={cn("w-7 h-7 transition-transform", isFavorite && "fill-pink-500 text-pink-500 scale-110")} />
           </button>
@@ -173,15 +193,15 @@ export const NowPlaying: React.FC<NowPlayingProps> = ({
             
             <button 
               onClick={onTogglePlay}
-              className="w-20 h-20 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_30px_rgba(47,141,255,0.4)] transition-all active:scale-95 group relative"
+              className={cn("flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_30px_rgba(47,141,255,0.4)] transition-all active:scale-95 group relative", isShort ? "w-14 h-14" : "w-20 h-20")}
             >
               <div className="absolute inset-0 rounded-full bg-white/20 scale-0 group-hover:scale-100 transition-transform duration-300 ease-out" />
               {isLoading ? (
-                <div className="w-8 h-8 border-3 border-white/20 border-t-white rounded-full animate-spin" />
+                <div className="w-6 h-6 border-3 border-white/20 border-t-white rounded-full animate-spin" />
               ) : isPlaying ? (
-                <Pause className="w-8 h-8 fill-white relative z-10" />
+                <Pause className={cn("fill-white relative z-10", isShort ? "w-6 h-6" : "w-8 h-8")} />
               ) : (
-                <Play className="w-8 h-8 fill-white relative z-10 ml-1" />
+                <Play className={cn("fill-white relative z-10 ml-1", isShort ? "w-6 h-6" : "w-8 h-8")} />
               )}
             </button>
 

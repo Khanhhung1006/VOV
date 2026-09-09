@@ -16,7 +16,7 @@ class AudioService {
   
   private currentChannel: Channel | null = null;
   private retryCount = 0;
-  private retryDelays = [2000, 5000, 10000];
+  private retryDelays = [1000, 3000, 5000, 10000, 15000, 30000, 60000];
   private retryTimeout: any = null;
 
   private wakeLockAudio: HTMLAudioElement;
@@ -98,6 +98,26 @@ class AudioService {
 
   private setState(newState: PlayerState) {
     this.state = newState;
+    if ('mediaSession' in navigator) {
+      if (newState === 'playing') {
+        navigator.mediaSession.playbackState = 'playing';
+      } else if (newState === 'paused' || newState === 'idle' || newState === 'error') {
+        navigator.mediaSession.playbackState = 'paused';
+      }
+    }
+    if (Capacitor.isNativePlatform()) {
+      let text = 'Đang chạy ngầm';
+      if (newState === 'playing' && this.currentChannel) {
+        text = `Đang phát: ${this.currentChannel.name}`;
+      } else if (newState === 'paused') {
+        text = 'Đã tạm dừng';
+      } else if (newState === 'loading') {
+        text = 'Đang tải kênh...';
+      } else if (newState === 'error') {
+        text = 'Lỗi kết nối';
+      }
+      BackgroundMode.setSettings({ text }).catch(() => {});
+    }
     if (this.onStateChangeCallback) {
       this.onStateChangeCallback(this.state);
     }
@@ -123,10 +143,31 @@ class AudioService {
     this.audio.addEventListener('error', () => this.handleError());
   }
 
-  private setupWebAudio() {
-    // WebAudio is completely disabled to maintain original HTML5 Audio sound quality.
-    // Radio streams are heavily compressed and passing them through WebAudio, even with neutral gain,
-    // causes subtle distortion and muddiness in talk shows and news.
+  public initWebAudio() {
+    if (this.audioContext) return;
+    
+    try {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 256;
+      this.analyser.smoothingTimeConstant = 0.8;
+      
+      this.boostNode = this.audioContext.createGain();
+      this.boostNode.gain.value = 1;
+      
+      this.sourceNode = this.audioContext.createMediaElementSource(this.audio);
+      
+      this.sourceNode.connect(this.boostNode);
+      this.boostNode.connect(this.analyser);
+      this.analyser.connect(this.audioContext.destination);
+      
+      const savedBoost = localStorage.getItem('audioBoost');
+      if (savedBoost) {
+        this.setAudioBoost(parseFloat(savedBoost));
+      }
+    } catch (e) {
+      console.warn('Web Audio API initialization failed:', e);
+    }
   }
 
   private handleError() {
@@ -135,7 +176,7 @@ class AudioService {
       const delay = this.retryDelays[this.retryCount];
       this.retryCount++;
       
-      const useFallback = this.retryCount >= 2; // Use fallback on second retry
+      const useFallback = this.retryCount >= 4; // Give primary stream more chances before fallback
       
       console.log(`Stream error, retrying in ${delay}ms... (Attempt ${this.retryCount}, Fallback: ${useFallback})`);
       clearTimeout(this.retryTimeout);
@@ -156,6 +197,10 @@ class AudioService {
   }
 
   public play(channel: Channel, isRetry = false, useFallback = false) {
+    this.initWebAudio();
+    if (this.audioContext?.state === 'suspended') {
+      this.audioContext.resume();
+    }
     this.isIntentionalPause = false;
     
     if (!isRetry) {
@@ -166,7 +211,15 @@ class AudioService {
     this.currentChannel = channel;
     this.setState('loading');
     
-    const url = useFallback ? getStreamUrlFallback(channel.id) : channel.streamUrl;
+    let url = channel.streamUrl;
+    if (useFallback) {
+      if (channel.backups && channel.backups.length > 0) {
+        const backupIndex = (this.retryCount - 4) % channel.backups.length;
+        url = channel.backups[backupIndex >= 0 ? backupIndex : 0];
+      } else {
+        url = getStreamUrlFallback(channel.id);
+      }
+    }
 
     if (this.hls) {
       this.hls.destroy();
@@ -179,7 +232,14 @@ class AudioService {
       this.hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90
+        backBufferLength: 90,
+        maxBufferLength: 30, // Keep latency low but buffer enough to prevent drops
+        maxMaxBufferLength: 60,
+        manifestLoadingMaxRetry: 10,
+        manifestLoadingRetryDelay: 1000,
+        levelLoadingMaxRetry: 10,
+        fragLoadingMaxRetry: 10,
+        startPosition: -1 // Live edge
       });
       this.hls.loadSource(url);
       this.hls.attachMedia(this.audio);
@@ -230,6 +290,10 @@ class AudioService {
   }
 
   public togglePlay() {
+    this.initWebAudio();
+    if (this.audioContext?.state === 'suspended') {
+      this.audioContext.resume();
+    }
     if (this.state === 'playing') {
       this.pause();
     } else if (this.currentChannel) {
@@ -247,34 +311,70 @@ class AudioService {
     this.audio.volume = val;
   }
 
+  private convertSvgToPng(svgDataUrl: string): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 512;
+          canvas.height = 512;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, 512, 512);
+            resolve(canvas.toDataURL('image/png'));
+            return;
+          }
+        } catch (e) {
+          console.warn('Canvas SVG draw failed:', e);
+        }
+        resolve(svgDataUrl);
+      };
+      img.onerror = () => resolve(svgDataUrl);
+      img.src = svgDataUrl;
+    });
+  }
+
   private setupMediaSession(channel: Channel) {
     if (Capacitor.isNativePlatform()) {
       BackgroundMode.setSettings({ text: `Đang phát: ${channel.name}` }).catch(() => {});
     }
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: channel.name,
-        artist: 'FM Radio Việt Nam',
-        album: channel.category,
-        artwork: [
-          { src: channel.logo, sizes: '96x96', type: 'image/png' },
-          { src: channel.logo, sizes: '128x128', type: 'image/png' },
-          { src: channel.logo, sizes: '256x256', type: 'image/png' },
-          { src: channel.logo, sizes: '512x512', type: 'image/png' },
-        ]
-      });
+      const updateMetadata = (artworkUrl: string) => {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: channel.name,
+          artist: 'FM Radio Việt Nam',
+          album: channel.category,
+          artwork: [
+            { src: artworkUrl, sizes: '512x512', type: 'image/png' },
+            { src: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=512&h=512&q=80', sizes: '512x512', type: 'image/png' }
+          ]
+        });
+      };
+
+      // Set initial metadata with channel logo and convert to PNG async for lock screen support
+      updateMetadata(channel.logo);
+      if (channel.logo.startsWith('data:image/svg+xml')) {
+        this.convertSvgToPng(channel.logo).then((pngUrl) => {
+          updateMetadata(pngUrl);
+        }).catch(e => console.warn('PNG conversion fallback used', e));
+      }
 
       navigator.mediaSession.setActionHandler('play', () => {
+        this.initWebAudio();
+        if (this.audioContext?.state === 'suspended') {
+          this.audioContext.resume();
+        }
+        this.isIntentionalPause = false;
         this.audio.play().then(() => {
           this.wakeLockAudio.play().catch(e => console.warn(e));
-        });
-        this.setState('playing');
+        }).catch(e => console.warn(e));
       });
       navigator.mediaSession.setActionHandler('pause', () => {
-        this.isIntentionalPause = true;
-        this.audio.pause();
-        this.wakeLockAudio.pause();
-        this.setState('paused');
+        this.pause();
+      });
+      navigator.mediaSession.setActionHandler('stop', () => {
+        this.pause();
       });
       
       if (this.onNextCallback) {
