@@ -88,7 +88,6 @@ class AudioService {
     this.audio.addEventListener('playing', () => {
       this.setState('playing');
       this.retryCount = 0; // reset retry on success
-      this.setupWebAudio(); // Resume or init audio context
     });
     this.audio.addEventListener('waiting', () => {
       if (this.state !== 'error') this.setState('loading');
@@ -102,46 +101,9 @@ class AudioService {
   }
 
   private setupWebAudio() {
-    // Only init if not already done, and user has interacted
-    if (!this.audioContext) {
-      try {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        this.audioContext = new AudioCtx();
-        this.analyser = this.audioContext.createAnalyser();
-        
-        // Setup Visualizer properties
-        this.analyser.fftSize = 256;
-        this.analyser.smoothingTimeConstant = 0.8;
-
-        this.sourceNode = this.audioContext.createMediaElementSource(this.audio);
-
-        // Audio Enhancement Nodes
-        // Audio Boost (Volume Multiplier)
-        this.boostNode = this.audioContext.createGain();
-        this.boostNode.gain.value = parseFloat(localStorage.getItem('audioBoost') || '1');
-
-        // Dynamics Compressor (Limiter / Peak Protection)
-        const compressor = this.audioContext.createDynamicsCompressor();
-        compressor.threshold.value = -3;
-        compressor.knee.value = 5;
-        compressor.ratio.value = 12;
-        compressor.attack.value = 0.005;
-        compressor.release.value = 0.050;
-
-        // Connect chain: Source -> Boost -> Analyser -> Destination
-        this.sourceNode
-          .connect(this.boostNode)
-          .connect(this.analyser)
-          .connect(this.audioContext.destination);
-
-      } catch (e) {
-        console.warn('Web Audio API not supported or failed to init', e);
-      }
-    }
-
-    if (this.audioContext && this.audioContext.state === 'suspended') {
-      this.audioContext.resume();
-    }
+    // WebAudio is completely disabled to maintain original HTML5 Audio sound quality.
+    // Radio streams are heavily compressed and passing them through WebAudio, even with neutral gain,
+    // causes subtle distortion and muddiness in talk shows and news.
   }
 
   private handleError() {
@@ -249,15 +211,12 @@ class AudioService {
       this.pause();
     } else if (this.currentChannel) {
       this.isIntentionalPause = false;
-      // If we are suspended due to interruption, we should resume. 
-      // Re-triggering play helps with background execution
       this.audio.play().then(() => {
         this.wakeLockAudio.play().catch(e => console.warn('Wakelock audio failed', e));
       }).catch(e => {
         this.isIntentionalPause = true;
         console.warn(e);
       });
-      this.setupWebAudio();
     }
   }
 
