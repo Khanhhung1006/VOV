@@ -126,6 +126,7 @@ public class RadioPlaybackService extends MediaSessionService {
                 // Release: 50.0 ms
                 // Peak Ceiling: -1.0 dBFS (strictly prevents any clipping above 0 dBFS)
                 DynamicsProcessing.Limiter limiter = new DynamicsProcessing.Limiter(
+                    true,       // inUse
                     true,       // enabled
                     0,          // linkGroup
                     5.0f,       // attackTime
