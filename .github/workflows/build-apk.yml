@@ -34,11 +34,12 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Force SDK 35 and Fix AndroidX Core
+      - name: Force SDK 35 and Fix AndroidX
         run: |
           sed -i 's/compileSdkVersion = 34/compileSdkVersion = 35/g' android/variables.gradle
           sed -i 's/targetSdkVersion = 34/targetSdkVersion = 35/g' android/variables.gradle
           sed -i 's/androidxCoreVersion = .*/androidxCoreVersion = '"'"'1.13.1'"'"'/g' android/variables.gradle
+          sed -i 's/androidxActivityVersion = .*/androidxActivityVersion = '"'"'1.10.0'"'"'/g' android/variables.gradle
           sed -i 's/rootProject.ext.compileSdkVersion : 34/rootProject.ext.compileSdkVersion : 35/g' android/capacitor-cordova-android-plugins/build.gradle || true
           sed -i 's/rootProject.ext.targetSdkVersion : 34/rootProject.ext.targetSdkVersion : 35/g' android/capacitor-cordova-android-plugins/build.gradle || true
 
