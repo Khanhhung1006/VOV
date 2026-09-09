@@ -97,7 +97,7 @@ public class RadioPlaybackService extends MediaSessionService {
                 );
 
                 DynamicsProcessing.Config config = builder.build();
-                dynamicsProcessing = new DynamicsProcessing(audioSessionId, config);
+                dynamicsProcessing = new DynamicsProcessing(0, audioSessionId, config);
 
                 // Setup Studio Compressor parameters:
                 // Ratio: 1.8:1
