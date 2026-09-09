@@ -1,5 +1,7 @@
 import Hls from 'hls.js';
 import { Channel, getStreamUrlFallback } from '../config/channels';
+import { BackgroundMode } from '@anuradev/capacitor-background-mode';
+import { Capacitor } from '@capacitor/core';
 
 export type PlayerState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
@@ -35,6 +37,27 @@ class AudioService {
 
     this.setupAudioListeners();
     this.setupVisibilityListener();
+    this.initBackgroundMode();
+  }
+
+  private async initBackgroundMode() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await BackgroundMode.enable();
+        await BackgroundMode.setSettings({
+          title: 'FM Radio Việt Nam',
+          text: 'Đang chạy ngầm',
+          subText: 'Chạm để mở lại',
+          resume: true,
+          hidden: false,
+          disableWebViewOptimization: true,
+          allowClose: false
+        });
+        await BackgroundMode.disableWebViewOptimizations();
+      } catch (e) {
+        console.warn('Failed to initialize background mode:', e);
+      }
+    }
   }
 
   private setupVisibilityListener() {
@@ -225,6 +248,9 @@ class AudioService {
   }
 
   private setupMediaSession(channel: Channel) {
+    if (Capacitor.isNativePlatform()) {
+      BackgroundMode.setSettings({ text: `Đang phát: ${channel.name}` }).catch(() => {});
+    }
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: channel.name,
