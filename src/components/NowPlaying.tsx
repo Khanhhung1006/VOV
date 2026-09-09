@@ -14,7 +14,7 @@ interface NowPlayingProps {
   onTogglePlay: () => void;
   onChangeVolume: (v: number) => void;
   isExpanded: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   isLandscape?: boolean;
   sleepTimerTimeLeft?: number | null;
   setSleepTimer?: (minutes: number) => void;

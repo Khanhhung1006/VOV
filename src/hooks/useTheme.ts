@@ -4,8 +4,12 @@ export type ThemeMode = 'light' | 'dark' | 'auto';
 
 export function useTheme() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('theme');
-    return (saved === 'light' || saved === 'dark' || saved === 'auto') ? saved : 'dark';
+    try {
+      const saved = localStorage.getItem('theme');
+      return (saved === 'light' || saved === 'dark' || saved === 'auto') ? saved : 'dark';
+    } catch {
+      return 'dark';
+    }
   });
 
   const [activeTheme, setActiveTheme] = useState<'light' | 'dark'>('dark');
@@ -30,7 +34,11 @@ export function useTheme() {
       intervalId = setInterval(updateActiveTheme, 60000);
     }
 
-    localStorage.setItem('theme', themeMode);
+    try {
+      localStorage.setItem('theme', themeMode);
+    } catch (e) {
+      console.warn('localStorage write failed:', e);
+    }
 
     return () => {
       if (intervalId) clearInterval(intervalId);

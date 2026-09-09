@@ -15,7 +15,11 @@ export function useAudioPlayer() {
     }
   });
   const [audioBoost, setAudioBoostState] = useState<number>(() => {
-    return parseFloat(localStorage.getItem('audioBoost') || '1');
+    try {
+      return parseFloat(localStorage.getItem('audioBoost') || '1');
+    } catch {
+      return 1;
+    }
   });
   const [sleepTimerTimeLeft, setSleepTimerTimeLeft] = useState<number | null>(null);
 
@@ -31,7 +35,11 @@ export function useAudioPlayer() {
   const toggleHiddenChannel = (id: string) => {
     setHiddenChannels(prev => {
       const newHidden = prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id];
-      localStorage.setItem('hiddenChannels', JSON.stringify(newHidden));
+      try {
+        localStorage.setItem('hiddenChannels', JSON.stringify(newHidden));
+      } catch (e) {
+        console.warn('localStorage write failed:', e);
+      }
       return newHidden;
     });
   };
@@ -42,7 +50,12 @@ export function useAudioPlayer() {
     });
 
     // Auto-play on startup
-    const lastChannelId = localStorage.getItem('lastPlayedChannel');
+    let lastChannelId: string | null = null;
+    try {
+      lastChannelId = localStorage.getItem('lastPlayedChannel');
+    } catch (e) {
+      console.warn('localStorage read failed:', e);
+    }
     let channelToPlay = null;
     
     if (lastChannelId) {
@@ -66,7 +79,11 @@ export function useAudioPlayer() {
 
   const setAudioBoost = (level: number) => {
     setAudioBoostState(level);
-    localStorage.setItem('audioBoost', level.toString());
+    try {
+      localStorage.setItem('audioBoost', level.toString());
+    } catch (e) {
+      console.warn('localStorage write failed:', e);
+    }
     audioService.setAudioBoost(level);
   };
 
@@ -98,14 +115,22 @@ export function useAudioPlayer() {
   const toggleFavorite = (id: string) => {
     setFavorites(prev => {
       const newFavs = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
-      localStorage.setItem('favorites', JSON.stringify(newFavs));
+      try {
+        localStorage.setItem('favorites', JSON.stringify(newFavs));
+      } catch (e) {
+        console.warn('localStorage write failed:', e);
+      }
       return newFavs;
     });
   };
 
   const playChannel = (channel: Channel) => {
     setCurrentChannel(channel);
-    localStorage.setItem('lastPlayedChannel', channel.id);
+    try {
+      localStorage.setItem('lastPlayedChannel', channel.id);
+    } catch (e) {
+      console.warn('localStorage write failed:', e);
+    }
     audioService.play(channel);
   };
 

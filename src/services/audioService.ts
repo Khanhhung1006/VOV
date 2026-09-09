@@ -343,8 +343,8 @@ class AudioService {
   }
 
   private setupMediaSession(channel: Channel) {
-    if (Capacitor.isNativePlatform()) {
-      BackgroundMode.setSettings({ text: `Đang phát: ${channel.name}` }).catch(() => {});
+    if (this.backgroundMode) {
+      this.backgroundMode.setSettings({ text: `Đang phát: ${channel.name}` }).catch(() => {});
     }
     if ('mediaSession' in navigator) {
       const updateMetadata = (artworkUrl: string) => {
